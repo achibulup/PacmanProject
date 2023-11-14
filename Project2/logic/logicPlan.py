@@ -554,10 +554,26 @@ def mapping(problem, agent) -> Generator:
     KB.append(conjoin(outer_wall_sent))
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # util.raiseNotDefined()
+    KB.append(PropSymbolExpr(pacman_str, pac_x_0, pac_y_0, time = 0))
+
+    KB.append(~PropSymbolExpr(wall_str, pac_x_0, pac_y_0))
+    known_map[pac_x_0][pac_y_0] = 0
 
     for t in range(agent.num_timesteps):
-        "*** END YOUR CODE HERE ***"
+        KB.append(pacphysicsAxioms(t, all_coords, non_outer_wall_coords, known_map, sensorModel = sensorAxioms ,successorAxioms = allLegalSuccessorAxioms))
+        KB.append(PropSymbolExpr(agent.actions[t], time = t))
+        KB.append(fourBitPerceptRules(t, agent.getPercepts()))
+        
+        for i, j in non_outer_wall_coords:
+            if entails(conjoin(KB), PropSymbolExpr(wall_str, i, j)):
+                KB.append(PropSymbolExpr(wall_str, i, j))
+                known_map[i][j] = 1
+            elif entails(conjoin(KB), ~PropSymbolExpr(wall_str, i, j)):
+                KB.append(~PropSymbolExpr(wall_str, i, j))
+                known_map[i][j] = 0
+
+        agent.moveToNextState(agent.actions[t])
         yield known_map
 
 #______________________________________________________________________________
@@ -586,9 +602,38 @@ def slam(problem, agent) -> Generator:
     KB.append(conjoin(outer_wall_sent))
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # util.raiseNotDefined()
+    KB.append(PropSymbolExpr(pacman_str, pac_x_0, pac_y_0, time= 0))
+
+    #We don't have a wall in the initial position
+    KB.append(~PropSymbolExpr(wall_str, pac_x_0, pac_y_0))
+    known_map[pac_x_0][pac_y_0] = 0
 
     for t in range(agent.num_timesteps):
+        possible_locations = []
+        KB.append(pacphysicsAxioms(t, all_coords, non_outer_wall_coords, known_map, sensorModel = SLAMSensorAxioms ,successorAxioms = SLAMSuccessorAxioms))
+        KB.append(PropSymbolExpr(agent.actions[t], time = t))
+        KB.append(numAdjWallsPerceptRules(t, agent.getPercepts()))
+        
+        for i, j in non_outer_wall_coords:
+            if entails(conjoin(KB), PropSymbolExpr(wall_str, i, j)):
+                KB.append(PropSymbolExpr(wall_str, i, j))
+                known_map[i][j] = 1
+            elif entails(conjoin(KB), ~PropSymbolExpr(wall_str, i, j)):
+                KB.append(~PropSymbolExpr(wall_str, i, j))
+                known_map[i][j] = 0
+
+        
+        for i, j in non_outer_wall_coords:
+            if findModel(conjoin(KB) & PropSymbolExpr(pacman_str, i, j, time = t)) != False:
+                possible_locations.append((i, j))
+
+            if entails(conjoin(KB), PropSymbolExpr(pacman_str, i, j, time = t)):
+                KB.append(PropSymbolExpr(pacman_str, i, j, time = t))
+            elif entails(conjoin(KB), ~PropSymbolExpr(pacman_str, i, j, time = t)):
+                KB.append(~PropSymbolExpr(pacman_str, i, j, time = t))
+                
+        agent.moveToNextState(agent.actions[t])
         "*** END YOUR CODE HERE ***"
         yield (known_map, possible_locations)
 

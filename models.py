@@ -42,7 +42,7 @@ class PerceptronModel(object):
         """
         Train the perceptron until convergence.
         """
-        learning_rate = 1
+        learning_rate = 1 # not documented in the spec but in the grader code
         while True:
             datapoints = 0
             corrects = 0

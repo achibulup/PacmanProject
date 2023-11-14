@@ -449,7 +449,38 @@ def foodLogicPlan(problem) -> List:
     KB = []
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    KB.append(PropSymbolExpr(pacman_str, x0, y0, time = 0))
+    for i, j in food:
+        KB.append(PropSymbolExpr(food_str, i, j, time = 0))
+
+    for t in range(50):
+        print(t)
+        
+        list_pacman = []
+        for i, j in non_wall_coords:
+            list_pacman.append(PropSymbolExpr(pacman_str, i, j, time = t)) 
+        KB.append(exactlyOne(list_pacman))
+    
+        list_actions = []
+        for i in DIRECTIONS:
+            list_actions.append(PropSymbolExpr(i, time = t))        
+        KB.append(exactlyOne(list_actions))
+
+        if t > 0:
+            for i, j in non_wall_coords:
+                KB.append(pacmanSuccessorAxiomSingle(i, j, t, walls))
+
+        for i, j in all_coords:
+            KB.append((PropSymbolExpr(food_str, i, j, time = t) & ~PropSymbolExpr(pacman_str, i, j, time = t)) >> PropSymbolExpr(food_str, i, j, time = t + 1))
+
+        list_food_expr = []
+        for i, j in food:
+            list_food_expr.append(PropSymbolExpr(food_str, i, j, time= t))
+
+        if findModel(conjoin(KB) & ~atLeastOne(list_food_expr)) != False:
+            return extractActionSequence(findModel(conjoin(KB) & ~atLeastOne(list_food_expr)), actions)
+        
+    # util.raiseNotDefined()
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
@@ -468,9 +499,32 @@ def localization(problem, agent) -> Generator:
     KB = []
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # util.raiseNotDefined()
+    for i, j in walls_list:
+        KB.append(PropSymbolExpr(wall_str, i, j))
+    
+    list_no_walls = [item for item in all_coords if item not in walls_list]
+
+    for i, j in list_no_walls:
+        KB.append(~PropSymbolExpr(wall_str, i, j))
 
     for t in range(agent.num_timesteps):
+        print(t)
+        possible_locations = []
+        KB.append(pacphysicsAxioms(t, all_coords, non_outer_wall_coords, walls_grid, sensorModel = sensorAxioms ,successorAxioms = allLegalSuccessorAxioms))
+        KB.append(PropSymbolExpr(agent.actions[t], time = t))
+        KB.append(fourBitPerceptRules(t, agent.getPercepts()))
+        
+        for i, j in non_outer_wall_coords:
+            if findModel(conjoin(KB) & PropSymbolExpr(pacman_str, i, j, time = t)) != False:
+                possible_locations.append((i, j))
+
+            if entails(conjoin(KB), PropSymbolExpr(pacman_str, i, j, time = t)):
+                KB.append(PropSymbolExpr(pacman_str, i, j, time = t))
+            elif entails(conjoin(KB), ~PropSymbolExpr(pacman_str, i, j, time = t)):
+                KB.append(~PropSymbolExpr(pacman_str, i, j, time = t))
+
+        agent.moveToNextState(agent.actions[t])
         "*** END YOUR CODE HERE ***"
         yield possible_locations
 

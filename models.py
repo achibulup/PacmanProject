@@ -57,7 +57,8 @@ class PerceptronModel(object):
                 break
             print(f"{corrects} / {datapoints}")
 
-                
+def applyRelu(x, layer=None):
+    return nn.ReLU(x)
 
 class RegressionModel(object):
     """
@@ -66,8 +67,18 @@ class RegressionModel(object):
     to approximate sin(x) on the interval [-2pi, 2pi] to reasonable precision.
     """
     def __init__(self):
+        width = 512
         # Initialize your model parameters here
-        "*** YOUR CODE HERE ***"
+        self.layers = [
+            (nn.Parameter(1, width), nn.Linear),
+            (nn.Parameter(1, width), nn.AddBias),
+            (None, applyRelu),
+            (nn.Parameter(width, 1), nn.Linear),
+            (nn.Parameter(1, 1), nn.AddBias),
+        ]
+        self.batch_size = 200
+        self.learning_rate = 0.01
+
 
     def run(self, x):
         """
@@ -78,7 +89,9 @@ class RegressionModel(object):
         Returns:
             A node with shape (batch_size x 1) containing predicted y-values
         """
-        "*** YOUR CODE HERE ***"
+        for layer, apply in self.layers:
+            x = apply(x, layer)
+        return x
 
     def get_loss(self, x, y):
         """
@@ -90,13 +103,21 @@ class RegressionModel(object):
                 to be used for training
         Returns: a loss node
         """
-        "*** YOUR CODE HERE ***"
+        return nn.SquareLoss(self.run(x), y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
-        "*** YOUR CODE HERE ***"
+        for x, y in dataset.iterate_forever(self.batch_size):
+            loss = self.get_loss(x, y)
+            if nn.as_scalar(loss) < 0.02:
+                break
+            learnables = [layer for layer, _ in self.layers if layer is not None]
+            grads = nn.gradients(loss, learnables)
+            for learnable, grad in zip(learnables, grads):
+                learnable.update(grad, -self.learning_rate)
+        
 
 class DigitClassificationModel(object):
     """

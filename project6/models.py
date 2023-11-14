@@ -210,7 +210,14 @@ class LanguageIDModel(object):
         self.languages = ["English", "Spanish", "Finnish", "Dutch", "Polish"]
 
         # Initialize your model parameters here
-        "*** YOUR CODE HERE ***"
+        self.batch_size = 100
+        self.learning_rate = 0.1
+        self.hidden_size = 300
+        self.linear1 = nn.Parameter(self.num_chars, self.hidden_size)
+        self.activation = nn.ReLU
+        self.linear2 = nn.Parameter(self.hidden_size, self.hidden_size)
+        self.bias = nn.Parameter(1, self.hidden_size)
+        self.linear3 = nn.Parameter(self.hidden_size, len(self.languages))
 
     def run(self, xs):
         """
@@ -241,7 +248,13 @@ class LanguageIDModel(object):
             A node with shape (batch_size x 5) containing predicted scores
                 (also called logits)
         """
-        "*** YOUR CODE HERE ***"
+        h = self.activation(nn.Linear(xs[0], self.linear1))
+        for x in xs[1:]:
+            xw = nn.Linear(x, self.linear1)
+            hw = nn.Linear(h, self.linear2)
+            z = nn.AddBias(nn.Add(xw, hw), self.bias)
+            h = self.activation(z)
+        return nn.Linear(h, self.linear3)
 
     def get_loss(self, xs, y):
         """
@@ -257,10 +270,17 @@ class LanguageIDModel(object):
             y: a node with shape (batch_size x 5)
         Returns: a loss node
         """
-        "*** YOUR CODE HERE ***"
+        return nn.SoftmaxLoss(self.run(xs), y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
-        "*** YOUR CODE HERE ***"
+        for x, y in dataset.iterate_forever(self.batch_size):
+            if dataset.get_validation_accuracy() > 0.85:
+                break
+            loss = self.get_loss(x, y)
+            learnables = [self.linear1, self.linear2, self.bias, self.linear3]
+            grads = nn.gradients(loss, learnables)
+            for learnable, grad in zip(learnables, grads):
+                learnable.update(grad, -self.learning_rate)

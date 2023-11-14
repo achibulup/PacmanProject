@@ -135,7 +135,17 @@ class DigitClassificationModel(object):
     """
     def __init__(self):
         # Initialize your model parameters here
-        "*** YOUR CODE HERE ***"
+        input_size = 28 * 28
+        self.batch_size = 100
+        self.learning_rate = 0.5
+        self.layers = [
+            (nn.Parameter(input_size, 200), nn.Linear),
+            (nn.Parameter(1, 200), nn.AddBias),
+            (None, applyRelu),
+            (nn.Parameter(200, 10), nn.Linear),
+            (nn.Parameter(1, 10), nn.AddBias),
+        ]
+
 
     def run(self, x):
         """
@@ -151,7 +161,9 @@ class DigitClassificationModel(object):
             A node with shape (batch_size x 10) containing predicted scores
                 (also called logits)
         """
-        "*** YOUR CODE HERE ***"
+        for layer, apply in self.layers:
+            x = apply(x, layer)
+        return x
 
     def get_loss(self, x, y):
         """
@@ -166,13 +178,20 @@ class DigitClassificationModel(object):
             y: a node with shape (batch_size x 10)
         Returns: a loss node
         """
-        "*** YOUR CODE HERE ***"
+        return nn.SoftmaxLoss(self.run(x), y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
-        "*** YOUR CODE HERE ***"
+        for x, y in dataset.iterate_forever(self.batch_size):
+            if dataset.get_validation_accuracy() > 0.98:
+                break
+            loss = self.get_loss(x, y)
+            learnables = [layer for layer, _ in self.layers if layer is not None]
+            grads = nn.gradients(loss, learnables)
+            for learnable, grad in zip(learnables, grads):
+                learnable.update(grad, -self.learning_rate)
 
 class LanguageIDModel(object):
     """

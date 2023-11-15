@@ -296,6 +296,7 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
+        return (self.startingPosition, (True, True, True, True))
         util.raiseNotDefined()
 
     def isGoalState(self, state: Any):
@@ -303,6 +304,8 @@ class CornersProblem(search.SearchProblem):
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
+        pos, corner_state = state
+        return sum(corner_state) == 0
         util.raiseNotDefined()
 
     def getSuccessors(self, state: Any):
@@ -315,6 +318,9 @@ class CornersProblem(search.SearchProblem):
             state, 'action' is the action required to get there, and 'stepCost'
             is the incremental cost of expanding to that successor
         """
+        pos, corner_state = state
+        x, y = pos
+        successors = []
 
         successors = []
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
@@ -326,6 +332,13 @@ class CornersProblem(search.SearchProblem):
             #   hitsWall = self.walls[nextx][nexty]
 
             "*** YOUR CODE HERE ***"
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            is_wall = self.walls[nextx][nexty]
+            if not is_wall:
+                next_corner_state = [cs and (nextx, nexty) != corner for cs, corner in zip(corner_state, self.corners)]
+                next_state = ((nextx, nexty), tuple(next_corner_state))
+                successors.append((next_state, action, 1))
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
@@ -361,7 +374,12 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    pos, corner_state = state
+    h = 0
+    for i, cs in enumerate(corner_state):
+        if cs:
+            h = max(h, util.manhattanDistance(pos, corners[i]))
+    return h
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"

@@ -19,6 +19,14 @@ Pacman agents (in searchAgents.py).
 
 import util
 
+class Node:
+    def __init__(self, state, prev, action, score, sum_cost = 0):
+        self.state = state
+        self.prev = prev
+        self.action = action
+        self.score = score
+        self.sum_cost = sum_cost
+
 class SearchProblem:
     """
     This class outlines the structure of a search problem, but doesn't implement
